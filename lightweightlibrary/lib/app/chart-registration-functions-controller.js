@@ -11,6 +11,7 @@ import { logger } from './logger.js';
 import { Locator } from "./service-locator/locator.js";
 import PriceScaleFunctionManager from "./price-scale/price-scale-function-manager";
 import WatermarkCache from "./watermark/watermark-cache";
+import { notifyChartRemoved } from './extensions/extension-host.js';
 
 export default class ChartRegistrationFunctionsController {
 
@@ -53,6 +54,7 @@ export default class ChartRegistrationFunctionsController {
             this.markersCache.clear()
             this.watermarkCache.clear()
             this.chart.remove()
+            notifyChartRemoved()
             resolve()
         })
 

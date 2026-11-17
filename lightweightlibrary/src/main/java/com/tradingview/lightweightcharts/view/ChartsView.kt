@@ -10,8 +10,10 @@ import androidx.webkit.WebViewFeature.*
 import com.tradingview.lightweightcharts.Logger
 import com.tradingview.lightweightcharts.api.delegates.ChartApiDelegate
 import com.tradingview.lightweightcharts.api.exception.ChartBridgeException
+import com.tradingview.lightweightcharts.api.extension.ChartExtensionHost
 import com.tradingview.lightweightcharts.runtime.WebMessageChannel
 import com.tradingview.lightweightcharts.runtime.controller.WebMessageController
+import com.tradingview.lightweightcharts.runtime.extension.ChartExtensionHostImpl
 import com.tradingview.lightweightcharts.runtime.messaging.LogLevel
 import com.tradingview.lightweightcharts.view.gesture.TouchDelegate
 import java.lang.Exception
@@ -47,9 +49,35 @@ open class ChartsView @JvmOverloads constructor(
         private set(value) {
             field = value
             onStateChanged.forEach { it.invoke(value) }
+            notifyExtensionHostState(value)
         }
 
     private var onStateChanged: MutableList<((State) -> Unit)> = mutableListOf()
+
+    /**
+     * Generic chart extension host bound to this view.
+     *
+     * The host is created lazily so views that do not use extensions pay no cost. Every method of
+     * the host must be called from the main thread.
+     */
+    val extensions: ChartExtensionHost
+        get() = extensionHost ?: ChartExtensionHostImpl(
+            controller = exposeWebMessageController(),
+            assets = context.assets
+        ).also { extensionHost = it }
+
+    private var extensionHost: ChartExtensionHostImpl? = null
+
+    internal fun exposeWebMessageController(): WebMessageController = webMessageController
+
+    private fun notifyExtensionHostState(value: State) {
+        val host = extensionHost ?: return
+        when (value) {
+            is State.Preparing -> host.onChartRuntimeLost("preparing")
+            is State.Ready -> host.onChartRuntimeReady()
+            is State.Error -> host.onChartRuntimeLost("error")
+        }
+    }
 
     private val notSupportedFeatures: List<String> = checkSupportedFeature()
 

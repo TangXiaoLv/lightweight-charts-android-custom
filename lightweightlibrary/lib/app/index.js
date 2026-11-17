@@ -4,6 +4,9 @@ import ChartRegistrationFunctionsController from './chart-registration-functions
 import PluginManager from './plugin-manager.js';
 import { logger } from './logger.js';
 import { initLocator } from './service-locator/locator-component.js';
+import { Locator } from './service-locator/locator.js';
+import SeriesCache from './series/series-cache.js';
+import { initExtensionHost } from './extensions/extension-host.js';
 
 const createChart = LightweightCharts.createChart
 window.LightweightCharts = Object.assign({}, LightweightCharts)
@@ -38,6 +41,15 @@ onmessage = function (message) {
     )
     functionsController.registerFunctions()
     window.functionsController = functionsController
+
+    // Generic chart extension host: loads feature bundles from android assets and routes opaque
+    // messages. It contains no Drawing/Indicator business semantics.
+    initExtensionHost({
+        getFunctionManager: () => functionManager,
+        getChart: () => window.chart,
+        getSeriesCache: () => Locator.resolve(SeriesCache.name),
+        getChartInstanceId: () => undefined
+    })
 
     logger.d("Connection has been established")
     port.onmessage = function (event) {
