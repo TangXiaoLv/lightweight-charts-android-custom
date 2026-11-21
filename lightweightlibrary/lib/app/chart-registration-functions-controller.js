@@ -59,7 +59,14 @@ export default class ChartRegistrationFunctionsController {
         })
 
         this.functionManager.registerFunction("chartOptions", (params, resolve) => {
-            let options = this.chart.options()
+            // Do not mutate the live chart options: _restorePluginOption replaces plugin functions
+            // with plugin descriptors, and the formatters must stay callable for the chart itself.
+            const liveOptions = this.chart.options()
+            const options = {
+                ...liveOptions,
+                localization: liveOptions.localization ? { ...liveOptions.localization } : liveOptions.localization,
+                timeScale: liveOptions.timeScale ? { ...liveOptions.timeScale } : liveOptions.timeScale
+            }
 
             this._restorePluginOption(options.localization, "priceFormatter")
             this._restorePluginOption(options.localization, "timeFormatter")
